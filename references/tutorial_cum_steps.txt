@@ -1,0 +1,64 @@
+#created server and client folder
+# server side setup
+- install poetry as python dependency manager
+and npx command and client side for next js 
+
+- DB setup
+for DB we will be using Supabase is the Postgres development platform. Start your project with a 
+Postgres database, Authentication, instant APIs, Edge Functions, Realtime subscriptions,
+ Storage, and Vector embeddings.
+- download docker
+- node js 
+- Supabase commands
+    -npx Supabase init
+    - created config supabase files for our project
+
+    - npx supabse start
+    - Spins up Docker containers with PostgreSQL, Auth, APIs, etc.
+    - Creates the Supabase backend services
+    - Gives you URLs and keys to connect to local supabase
+- create .env file with connection details
+
+- pip install supabase python-dotenv
+- Provides the supabase functions like create_client(),  .table(), .insert(), etc for Python
+
+- for tests created an table on supabase PostgreSQL with studio link ont this 
+url - npx supabse start
+- then use swagger and hit the api to get an table data from get_all_posts() from main.py
+
+- now to create all the tables which we designed firstly create an migration file
+How to apply SQL commands to the database?
+1. Create a migration file
+“| - In other words, we can just say "Create a migration”
+- Each migration file should represent one logical change to the database structure
+| -Inourcase, our first migration will contain the SQL commands needed to create all of our tables/indexes/extensions
+- In Supabase, we can create a migration by running the command: npx supabase migration new [migration_name]
+npx supabase migration new initial_schema
+- add SQL commands which we have prepared into .sql file created i.e migration file created 
+- run command - supabase db reset
+
+- tutorial to next js primer
+And that will be,
+
+1. Project Structure
+
+2. Routing in NextJs
+
+3. Building a simple CRUD application
+4. Hooks in React
+
+
+###########
+Without Clerk, to implement authentication, we would typically have to implement:
+1. Password Hashing and validation
+2 JWT token generation and verification
+3 Session management
+4. Email verification flows
+5. Password reset functionality
+6. Social OAuth integrations
+7. Security best practices
+But with Clerk, it handles all of this complexity, letting you 003s § your app's core features instead of authentication
+plumbing. You can go from zero to a functional auth system in minutes rather than week
+
+8. in server keep alll user relatred, project or chats relates API in seprtae files i.e in users.py or projects.py and import in main.py as an industry practice and neat code
+9. do app.include_router(users.router) for user router
