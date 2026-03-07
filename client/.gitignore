@@ -1,53 +1,3 @@
-<<<<<<< HEAD
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-
-node_modules/
-.next/
-.env
-.env.local
-.env.production
-=======
 # ------------------------------
 # Environment Variables
 # ------------------------------
@@ -56,7 +6,24 @@ node_modules/
 *.env
 
 # ------------------------------
-# Virtual Environment
+# Node / Next.js
+# ------------------------------
+node_modules/
+.next/
+out/
+coverage/
+build/
+
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ------------------------------
+# Python Virtual Environment
 # ------------------------------
 venv/
 env/
@@ -81,6 +48,10 @@ __pycache__/
 # Logs
 # ------------------------------
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # ------------------------------
 # IDE Files
@@ -95,19 +66,27 @@ __pycache__/
 Thumbs.db
 
 # ------------------------------
+# Typescript
+# ------------------------------
+*.tsbuildinfo
+next-env.d.ts
+
+# ------------------------------
+# Vercel
+# ------------------------------
+.vercel
+
+# ------------------------------
 # Build / Distribution
 # ------------------------------
-build/
 dist/
 *.egg-info/
 
 # ------------------------------
-# HuggingFace / ML Models (Optional)
-# Uncomment if needed
+# ML Models (Optional)
 # ------------------------------
 # models/
 # checkpoints/
 # *.pt
 # *.bin
 # *.safetensors
->>>>>>> c542de76a9ff5a1498b14cd320ab907fcbaee1c4
