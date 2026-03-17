@@ -3,6 +3,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+
+from routers import projects
 load_dotenv()
 from routers import users
 from database import supabase
@@ -14,12 +16,12 @@ app = FastAPI(
     version ="1.0.0"
 )
 
-app.include_router(users.router)
+app.include_router(projects.router)
 
 #configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = ["https://localhost:3000"],
+    allow_origins = ["http://localhost:3000"],
     allow_credentials=True,
     allow_methods = ["*"],
     allow_headers = ["*"],

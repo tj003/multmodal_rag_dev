@@ -1,16 +1,14 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+async function HomePage() {
+  const { userId } = await auth();
 
-export default function HomePage() {
-  const { userId } = useAuth();
-  const router = useRouter();
-
-    if (userId) {
-      router.push("/projects");
-    } else {
-      router.push("/sign-in");
-    }
+  if (userId) {
+    redirect("/projects");
+  } else {
+    redirect("/sign-in");
   }
+}
 
+export default HomePage;

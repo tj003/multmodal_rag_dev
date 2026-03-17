@@ -1,8 +1,9 @@
 import os
 from fastapi import HTTPException, Request
 from dotenv import load_dotenv
-from clerk_backend_api import AuthenticationRequestOptions, Clerk
-load_dotenv
+from clerk_backend_api import Clerk
+from clerk_backend_api import AuthenticateRequestOptions
+load_dotenv()
 #initilize clerk clinet
 clerk_client = Clerk(bearer_auth=os.getenv('CLERK_SECRET_KEY'))
 
@@ -10,10 +11,11 @@ ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',
 
 async def get_current_user(request: Request)-> str:
     try:
+        print(request_state.payload)
         request_state = clerk_client.authenticate_request(
             request,
-            AuthenticationRequestOptions(
-                authorized_parties = ["http://localhost:3000"]
+            AuthenticateRequestOptions(
+                authorized_parties = ALLOWED_ORIGINS
             )
         )
 

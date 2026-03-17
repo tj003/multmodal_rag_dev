@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api";
 
+
 interface Project {
   id: string;
   name: string;
@@ -48,11 +49,13 @@ function ProjectsPage() {
     try {
       setLoading(true);
 
-      const token = await getToken();
+      const token = await getToken({ template: "backend" });
 
       const result = await apiClient.get("/api/projects/", token);
 
       const { data } = result || {};
+
+      console.log(data, "Project list")
 
       setProjects(data);
     } catch (err) {
@@ -67,13 +70,15 @@ function ProjectsPage() {
     try {
       setError(null);
       setIsCreating(true);
-
-      const token = await getToken();
+      console.log((window as any).Clerk?.frontendApi);
+      const token = await getToken({ template: "backend" });
+      console.log("TOKEN:", token);
+      console.log((window as any).Clerk?.frontendApi);
 
       const result = await apiClient.post(
         "/api/projects/",
         {
-          name,
+          name, 
           description,
         },
         token
@@ -95,7 +100,7 @@ function ProjectsPage() {
   const handleDeleteProject = async (projectId: string) => {
     try {
       setError(null);
-      const token = await getToken();
+      const token = await getToken({ template: "backend" });
 
       await apiClient.delete(`/api/projects/${projectId}`, token);
 
