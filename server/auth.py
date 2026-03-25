@@ -11,18 +11,19 @@ ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',
 
 async def get_current_user(request: Request)-> str:
     try:
-        print(request_state.payload)
         request_state = clerk_client.authenticate_request(
             request,
             AuthenticateRequestOptions(
                 authorized_parties = ALLOWED_ORIGINS
             )
         )
+        print(request_state.payload)
 
+        payload = request_state.payload
         if not request_state.is_signed_in:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        clerk_id = request_state.payload.get("sub")
+        clerk_id = payload.get("sub")
 
         if not clerk_id:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -31,4 +32,5 @@ async def get_current_user(request: Request)-> str:
         
 
     except Exception as e:
+        print("AUTH ERROR:", str(e))
         raise HTTPException(status_code=401, detail=f"Unauthorized: {str(e)}")

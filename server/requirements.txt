@@ -1,0 +1,5 @@
+python-dotenv
+supabase
+uvicorn
+fastapi
+clerk_backend_api

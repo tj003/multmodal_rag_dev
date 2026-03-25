@@ -49,7 +49,7 @@ function ProjectsPage() {
     try {
       setLoading(true);
 
-      const token = await getToken({ template: "backend" });
+      const token = await getToken();
 
       const result = await apiClient.get("/api/projects/", token);
 
@@ -71,7 +71,7 @@ function ProjectsPage() {
       setError(null);
       setIsCreating(true);
       console.log((window as any).Clerk?.frontendApi);
-      const token = await getToken({ template: "backend" });
+      const token = await getToken();
       console.log("TOKEN:", token);
       console.log((window as any).Clerk?.frontendApi);
 
@@ -100,7 +100,7 @@ function ProjectsPage() {
   const handleDeleteProject = async (projectId: string) => {
     try {
       setError(null);
-      const token = await getToken({ template: "backend" });
+      const token = await getToken();
 
       await apiClient.delete(`/api/projects/${projectId}`, token);
 

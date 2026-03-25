@@ -90,3 +90,5 @@ dist/
 # *.pt
 # *.bin
 # *.safetensors
+# clerk configuration (can include secrets)
+/.clerk/

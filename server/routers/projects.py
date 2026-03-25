@@ -31,6 +31,7 @@ def create_project(project: ProjectCreate, clerk_id: str = Depends(get_current_u
                 "clerk_id": clerk_id
             }
         ).execute()
+        print("PROJECT RESULT:", project_result.data)
 
         if not project_result.data:
             raise HTTPException(status_code=500, detail="Failed to create project")
@@ -60,7 +61,8 @@ def create_project(project: ProjectCreate, clerk_id: str = Depends(get_current_u
             # if settings creation files, we should clean up the project
             supabase.table("projects").delete().eq("id", project_id).execute()
             raise HTTPException(status_code=500, detail="Failed to create project settings")
-
+        print("CREATED PROJECT:", created_project)
+        print("CREATED SETTINGS:", setting_result.data)
         return {
             "message": "Project created successfully",
             "data": created_project

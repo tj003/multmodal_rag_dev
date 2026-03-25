@@ -62,3 +62,25 @@ plumbing. You can go from zero to a functional auth system in minutes rather tha
 
 8. in server keep alll user relatred, project or chats relates API in seprtae files i.e in users.py or projects.py and import in main.py as an industry practice and neat code
 9. do app.include_router(users.router) for user router
+
+/***********************************************************************/
+SUPABASE_API_URL=http://127.0.0.1:54321   
+SUPABASE_SERVICE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_dG9waWNhbC1ncm91c2UtNjAuY2xlcmsuYWNjb3VudHMuZGV2JA
+CLERK_SECRET_KEY=sk_test_XU8NzF6gfl2WhiyQGHlBJanFCbPq2cC1bUgT1qlQrR
+
+ALLOWED_ORIGINS=http://localhost:3000
+/***************************************************************************************************/
+
+use this env and create an user with same user logged in appliaction with their clerk id from fastapi endppoin
+
+payload
+{
+  "type": "user.created",
+  "data": {
+    "id": "user_39p2jFnDYZRUqeBw3k6SSgoXW7u"
+  }
+}
+
+replace id with your id
