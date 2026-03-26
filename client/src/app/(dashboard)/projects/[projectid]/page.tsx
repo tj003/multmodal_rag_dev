@@ -84,7 +84,7 @@ function ProjectPage({params}:ProjectPageProps) {
     };
 
     //chat related method
-    const createNewChat = async () =>{
+    const handleCreateNewChat = async () =>{
         console.log("Creating new chat for project:");
     };
     const handleDeleteChat = async (chatId: string) =>{
@@ -114,7 +114,23 @@ function ProjectPage({params}:ProjectPageProps) {
     const handlePublishSettings = async () =>{
         console.log("Make API call to publish settings")
     }
-     return( <div> This page contains a projects's details</div>);
+     return( 
+     <div> 
+        <div className='flex h-screen bg-[#0d1117] gap-4 p-4'>
+            <ConversationsList
+        project = {mockProject}
+        conversations = {mockChats}
+        error = {null}
+        loading = {false}
+        onCreateNewChat = {handleCreateNewChat}
+        onChatClick = {handleChatClick}
+        onDeleteChat = {handleDeleteChat}
+        />
+        {/* <KnowledgeBaseSidebar} */}
+        
+        </div>
+        
+     </div>);
     }
    
     
