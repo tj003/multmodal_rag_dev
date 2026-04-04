@@ -53,7 +53,8 @@ function ProjectsPage() {
 
       const result = await apiClient.get("/api/projects/", token);
 
-      const { data } = result || {};
+      // const { data } = result || {};
+      const data = result?.data|| [];
 
       console.log(data, "Project list")
 
@@ -84,6 +85,7 @@ function ProjectsPage() {
         token
       );
 
+      // const savedProject = result?.data || {};
       const savedProject = result?.data || {};
       setProjects((prev) => [savedProject, ...prev]);
 
@@ -138,9 +140,9 @@ function ProjectsPage() {
   }, [userId]);
 
   const filteredProjects = projects.filter(
-    (project) =>
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (project) =>
+        (project.name ?? "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (project.description ?? "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (loading) {

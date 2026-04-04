@@ -1,10 +1,15 @@
 "use client";
 
-import React, { use, useState } from 'react'
+import React, { use, useEffect, useState } from 'react'
 import { ConversationsList } from '@/components/projects/ConversationsList';
 import { KnowledgeBaseSidebar } from '@/components/projects/KnowledgeBaseSidebar';
 import { FileDetailsModal } from '@/components/projects/FileDetailsModal';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
+import { Settings } from 'lucide-react';
+import { apiClient } from '@/lib/api/index';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { NotFound } from '@/components/ui/NotFound';
 
 interface ProjectPageProps{
     params: Promise<{
@@ -13,9 +18,22 @@ interface ProjectPageProps{
     }
 
 
-function ProjectPage({params}:ProjectPageProps) {
-    const {projectId} = use(params);
+function ProjectPage({ params }:ProjectPageProps) {
+    const { projectId } = use(params);
+    const { getToken, userId } = useAuth();
 
+    // data
+
+    const [data, setData] = useState({
+        project: null,
+        chats: [],
+        documents: [],
+        settings: null
+    })
+
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null);
+     
     //UI states
     const [activeTab, onSetActiveTab] = useState<"documents" | "settings">(
         "documents"
@@ -24,64 +42,42 @@ function ProjectPage({params}:ProjectPageProps) {
     const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
         null
     );
-    //mock data for documents list
-    const mockProject = {
-    id: projectId,
-    name: "Research Analysis Project",
-    description: "Al and machine learning research papers",
-    created_at: new Date().toISOString(),
-    clerk_id: "user_123",
-    };
+    //  load all the data
+    useEffect(() => {
+        const loadAllData = async () => {
+            if(!userId) return 
+            
+            try{
+                setLoading(true);
+                setError(null)    
+                const token = await getToken(); 
+                const [projectRes, chatsRes, documentRes , settingsRes] = await Promise.all([
+                    apiClient.get(`/api/projects/${projectId}`,token),
+                    apiClient.get(`/api/projects/${projectId}/chats`,token),
+                    apiClient.get(`/api/projects/${projectId}/files`,token),
+                    apiClient.get(`/api/projects/${projectId}/settings`,token),
+            ]);
+                setData({
+                    project: projectRes.data,
+                    chats: chatsRes.data,
+                    documents: documentRes.data,
+                    settings: settingsRes.data
+                })
+                }
+            catch(err){
+                console.error("Error loading project data", err);
+                setError("Failed to load project data. Please try again.")
+            }
 
-    const mockChats = [
-        {
-            id: "chat_1",
-            project_id: projectId,
-            title: "Chat #1234",
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            clerk_id: "user_123",
-        },
-        {
-            id: "chat_2",
-            project_id: projectId,
-            title: "Chat #45678",
-            created_at: new Date(Date.now() - 172800000).toISOString(),
-            clerk_id: "user_123",
-        },
-        ];
-
-    const mockDocuments = [
-        {
-            id: "doc_1",
-            project_id: projectId,
-            filename: "research_paper.pdf",
-            s3_key: "projects/123/documents/research_paper.pdf",
-            file_size: 2457600,
-            file_type: "application/pdf",
-            processing_status: "completed",
-            clerk_id: "user_123",
-            created_at: new Date(Date.now() - 3600000).toISOString(),
-            source_type: "file",
-            processing_details: {},
-        },
-        ];
-     
-    const mockSettings = {
-    id: "settings_1",
-    project_id: projectId,
-    embedding_model: "text-embedding-3-large",
-    rag_strategy: "basic",
-    agent_type: "agentic",
-    chunk_per_search: 10,
-    final_context_size: 5,
-    similarity_threshold: 0.3,
-    number_of_queries: 5,
-    reranking_enabled: true,
-    reranking_model: "rerank-english-v3.0",
-    vector_weight: 0.7,
-    keyword_weight: 0.3,
-    created_at: new Date().toISOString(),
+            
+            finally {
+                setLoading(false);
+            }
+             
     };
+    loadAllData();
+    },[userId, projectId]);
+   
 
     //chat related method
     const handleCreateNewChat = async () =>{
@@ -114,12 +110,22 @@ function ProjectPage({params}:ProjectPageProps) {
     const handlePublishSettings = async () =>{
         console.log("Make API call to publish settings")
     }
+
+    if(loading){
+        return <LoadingSpinner message="loading Project ..."/>
+    }
+    if(!data.project){
+        return <NotFound message="Project not found"/>
+    }
+
+    const selectedDocument = selectedDocumentId ? data.documents.find(doc => doc.id == selectedDocumentId) : null;
      return( 
-     <div> 
+        <>
+          <div> 
         <div className='flex h-screen bg-[#0d1117] gap-4 p-4'>
             <ConversationsList
-        project = {mockProject}
-        conversations = {mockChats}
+        project = {data.project}
+        conversations = {data.chats}
         error = {null}
         loading = {false}
         onCreateNewChat = {handleCreateNewChat}
@@ -127,10 +133,30 @@ function ProjectPage({params}:ProjectPageProps) {
         onDeleteChat = {handleDeleteChat}
         />
         {/* <KnowledgeBaseSidebar} */}
-        
+        <KnowledgeBaseSidebar
+        activeTab = {activeTab}
+        onSetActiveTab = {onSetActiveTab}
+        projectDocuments= {data.documents}
+        onDocumentUpload = {handleDocumentUpload}
+        onDocumentDelete = {handleDocumentDelete}
+        onOpenDocument = {handleOpenDocument}
+        onUrlAdd = {handleUrlAdd}
+        projectSettings = {data.settings}
+        settingsError = {null}
+        settingsLoading = {false}
+        onUpdateSettings = {handleDraftSettings}
+        onApplySettings = {handlePublishSettings}
+        />
         </div>
         
-     </div>);
+     </div>
+     { selectedDocument && (<FileDetailsModal 
+     document={selectedDocument} 
+     onClose={() => setSelectedDocumentId(null)}
+     />
+     )}
+     </>
+   );
     }
    
     
