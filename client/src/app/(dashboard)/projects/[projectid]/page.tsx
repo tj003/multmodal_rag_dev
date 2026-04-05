@@ -10,6 +10,9 @@ import { Settings } from 'lucide-react';
 import { apiClient } from '@/lib/api/index';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { NotFound } from '@/components/ui/NotFound';
+import { Preahvihear } from 'next/dist/compiled/@next/font/dist/google';
+import toast from 'react-hot-toast';
+import { Project, Chat, ProjectDocument, ProjectSettings } from "@/lib/types";
 
 interface ProjectPageProps{
     params: Promise<{
@@ -17,14 +20,21 @@ interface ProjectPageProps{
     }>;
     }
 
+interface ProjectData {
+    project: Project | null;
+    chats: Chat[];
+    documents: ProjectDocument[];
+    settings: ProjectSettings | null;
+}
+
 
 function ProjectPage({ params }:ProjectPageProps) {
     const { projectId } = use(params);
     const { getToken, userId } = useAuth();
 
-    // data
+    // data state 
 
-    const [data, setData] = useState({
+    const [data, setData] = useState <ProjectData>({
         project: null,
         chats: [],
         documents: [],
@@ -33,6 +43,8 @@ function ProjectPage({ params }:ProjectPageProps) {
 
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null);
+
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
      
     //UI states
     const [activeTab, onSetActiveTab] = useState<"documents" | "settings">(
@@ -66,7 +78,8 @@ function ProjectPage({ params }:ProjectPageProps) {
                 }
             catch(err){
                 console.error("Error loading project data", err);
-                setError("Failed to load project data. Please try again.")
+                setError("Failed to load project data.")
+                toast.error("Failed to load project data");
             }
 
             
@@ -81,15 +94,61 @@ function ProjectPage({ params }:ProjectPageProps) {
 
     //chat related method
     const handleCreateNewChat = async () =>{
-        console.log("Creating new chat for project:");
+        if(!userId) return;
+
+        try{
+            setIsCreatingChat(true);
+
+            const token = await getToken();
+            
+            const chatNumber = Date.now() % 10000; // simple way to generate a unique chat title
+
+            const result = await apiClient.post(`/api/chats`,{
+                title: `Chat #${chatNumber}`,
+                project_id: projectId
+            },token)
+
+            const savedChat = result.data[0] 
+            ///update local state with new chat
+            setData((prev) => ({
+                ...prev,
+                chats: [savedChat, ...prev.chats]
+            }))
+            toast.success("Chat created successfully!");
+        }
+        catch(err){
+            toast.error("Failed to create chat");
+            console.error("Failed to create chat", err);
+        }
+        finally{
+            setIsCreatingChat(false);
+        }
     };
     const handleDeleteChat = async (chatId: string) =>{
-        console.log("Deleting chat with id:", chatId);
+        if (!userId) return;
+        try{
+            const token = await getToken();
+            await apiClient.delete(`/api/chats/${chatId}`, token);
+
+            //update local state by removing the deleted chat
+            setData((prev) =>({
+                ...prev,
+                chats: prev.chats.filter((chat) => chat.id !== chatId),
+            }));
+
+            toast.success("Chat deleted successfully!");
+
+        }
+        catch(err){
+            toast.error("Failed to delete chat");
+            console.error("Failed to delete chat", err);
+        }
+        
     }
     const handleChatClick = async (chatId: string) => {
         console.log("Navigating to chat:", chatId);
     };
-    const handleDocumentUpload = async (files : File) =>{
+    const handleDocumentUpload = async (files  : File []) =>{
         console.log("Upload Files", files);
     }
     const handleDocumentDelete = async (documentId: string) => {
@@ -126,8 +185,8 @@ function ProjectPage({ params }:ProjectPageProps) {
             <ConversationsList
         project = {data.project}
         conversations = {data.chats}
-        error = {null}
-        loading = {false}
+        error = {error}
+        loading = {isCreatingChat}
         onCreateNewChat = {handleCreateNewChat}
         onChatClick = {handleChatClick}
         onDeleteChat = {handleDeleteChat}

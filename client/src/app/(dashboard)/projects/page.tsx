@@ -51,13 +51,11 @@ function ProjectsPage() {
 
       const token = await getToken();
 
-      const result = await apiClient.get("/api/projects/", token);
+      const result = await apiClient.get("/api/projects", token);
 
       // const { data } = result || {};
-      const data = result?.data|| [];
-
-      console.log(data, "Project list")
-
+      const data = result?.data || [];
+      console.log("Projects loaded:", data.map((p: Project) => ({ id: p.id, name: p.name })));
       setProjects(data);
     } catch (err) {
       console.error("Error Loading Projects", err);
@@ -77,7 +75,7 @@ function ProjectsPage() {
       console.log((window as any).Clerk?.frontendApi);
 
       const result = await apiClient.post(
-        "/api/projects/",
+        "/api/projects",
         {
           name, 
           description,
@@ -122,6 +120,11 @@ function ProjectsPage() {
   */
 
   const handleProjectClick = (projectId: string) => {
+    console.trace("handleProjectClick called with:", projectId);
+    if (!projectId) {
+        console.error("projectId is undefined! Blocking navigation.");
+        return;  // ← safety guard
+    }
     router.push(`/projects/${projectId}`);
   };
 
