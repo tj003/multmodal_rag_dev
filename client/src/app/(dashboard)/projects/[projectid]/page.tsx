@@ -149,8 +149,41 @@ function ProjectPage({ params }:ProjectPageProps) {
         console.log("Navigating to chat:", chatId);
     };
     const handleDocumentUpload = async (files  : File []) =>{
-        console.log("Upload Files", files);
-    }
+        console.log("Uploading Files", files);
+        if(!userId) return;
+
+            const token = await getToken();
+            const uplaodDocuments = [];
+            // proces all files parallelly 
+
+            const uploadPromises = files.map(async (file) =>{
+                try {
+                    console.log("Requesting upload URL for file", file.name);
+                    // step 1: get presigned url from backend
+                    const uploadData = await apiClient.post(`/api/projects/${projectId}/files/upload-url`,{
+                        filename: file.name,
+                        file_size: file.size,
+                        file_type: file.type,
+                    },token)
+                    const {upload_url, s3_key} = uploadData.data;
+
+                    console.log("Received upload URL and S3 key from backend", {upload_url, s3_key});
+
+                    // step 2: upload file to s3 using the presigned url
+                    await apiClient.uploadToS3(upload_url, file);
+
+                    //step 3: inform backend that upload is complete so it can update the database
+                    await apiClient.post(`/api/projects/${projectId}/files/confirm`)
+                } 
+                catch(err){
+                    console.error("Failed to get upload URL for file", file.name, err);
+                    toast.error(`Failed to get upload URL for file ${file.name}`);
+                    return null;
+                }
+
+        })
+        };
+
     const handleDocumentDelete = async (documentId: string) => {
         console.log("Document Deleted");
     }
@@ -165,9 +198,46 @@ function ProjectPage({ params }:ProjectPageProps) {
     // project settings
     const handleDraftSettings = (updates: any) => {
         console.log("Update local state with draft settings", updates)
+
+        setData((prev) => {
+            // If no settings exist yet, we can't draft updates, so we return previous state
+            if(!prev.settings)
+                {
+                    console.log("Cannot update settings: not loaded yet");
+                    return prev
+                } 
+
+            //merge the updated into existing settings
+            return {
+                ...prev,
+                settings : {
+                    ...prev.settings,
+                    ...updates
+                }
+            }
+        })
     };
     const handlePublishSettings = async () =>{
         console.log("Make API call to publish settings")
+        if(!userId || ! data.settings){
+            console.error("Cannot publish settings: missing user or settings data");
+            toast.error("Cannot publish settings: missing user or settings data");
+        }
+        try{
+            const token = await getToken();
+
+            const result = await apiClient.put(`/api/projects/${projectId}/settings`, data.settings, token);
+            setData((prev) =>({
+                ...prev,
+                settings: result.data
+            }));
+            toast.success("Settings saved successfully!");
+
+        }
+        catch(err){
+            console.error("Failed to save settings", err);
+            toast.error("Failed to save settings");
+        }
     }
 
     if(loading){

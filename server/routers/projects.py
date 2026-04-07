@@ -8,6 +8,20 @@ class ProjectCreate(BaseModel):
     name: str
     description: str = ""
 
+class ProjectSettings(BaseModel):
+    embedding_model: str
+    rag_strategy: str
+    agent_type: str
+    chunk_per_search: int
+    final_context_size: int
+    similarity_threshold: float
+    number_of_queries: int
+    reranking_enabled: bool
+    reranking_model: str
+    vector_weight: float
+    keyword_weight: float
+
+
 @router.get("/api/projects")
 def get_projects(clerk_id: str = Depends(get_current_user)):
     try:
@@ -141,3 +155,32 @@ async def get_project_settings(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve project settings: {str(e)}")
+
+@router.put("/api/projects/{project_id}/settings")
+async def update_project_settings(
+    project_id: str,
+    settings: ProjectSettings,
+    clerk_id: str = Depends(get_current_user)
+):
+    try:
+        #first verify he project exists and belongs to the user
+        project_result =supabase.table("projects").select("id").eq("id", project_id).eq("clerk_id", clerk_id).execute()
+
+        if not project_result.data:
+            raise HTTPException(status_code=404, detail="Settings not found for this project")
+        
+        # Perform the update
+        update_result = supabase.table("project_settings").update(settings.model_dump()).eq("project_id", project_id).execute()
+        print("Updating settings for:", project_id)
+        print("Payload:", settings.model_dump())
+        print("Result:", update_result.data)
+        
+        if not update_result.data:
+            raise HTTPException(status_code=500, detail="Failed to update project settings")
+        
+        return {
+            "message": "Project settings updated successfully",
+            "data": update_result.data[0]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update project settings: {str(e)}")

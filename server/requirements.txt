@@ -3,3 +3,4 @@ supabase
 uvicorn
 fastapi
 clerk_backend_api
+boto3

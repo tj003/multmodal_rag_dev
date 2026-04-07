@@ -84,3 +84,11 @@ payload
 }
 
 replace id with your id
+
+// read projectpage_notes.txt
+
+//red document uploads3.txt
+
+# download boto3 - Boto3 is the official Amazon Web Services (AWS) Software Development Kit (SDK) for Python, allowing developers to 
+create, update, and delete AWS resources like S3, EC2, and DynamoDB directly from Python scripts. It offers both low-level client interfaces
+ and higher-level object-oriented resources

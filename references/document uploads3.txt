@@ -1,0 +1,73 @@
+S3: The Storage Backbone of GenAI Apps
+#What is S3?
+S3 (Simple Storage Service) is object storage - think of it as a massive, infinitely-scalable hard drive in the cloud where you store
+files by key-value pairs instead of traditional folders.
+Key (path): "projects/abc123/documents/report.pdf"
+Value: [the actual PDF file data]
+That's it. Just PUT a file, GET a file. This is what makes it simple yet powerful.
+The Problem:
+AWS S3 can be a bit tedious to setup for beginners:
+- Requires credit card even for free tier
+- Easy to accidentally rack up charges
+- Complex billing that scares students
+- Overkill for small projects
+
+#The Solution: S3-Compatible Providers
+Here's the beautiful part: S3 became a standard protocol. Many providers offer "S3-compatible" storage that speaks the exact
+same language and provides the exact methods that AWS S3 provides:
+- MinIO - Self-hosted $3-compatible server
+- Tigris Data - Free, no credit card, works the same as S3
+
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRficYEXAMPLEKEY
+AWS_ENDPOINT_URL_S3=https://s3.amazonaws.com
+AWS_REGION-us-east-1
+
+AWS_ACCESS_KEY_ID=tid_ucRaaVJHhBTMуxyYvzTZKUUTIOSUADWDCHiKyhHjSEwZRJGDU
+AWS_SECRET_ACCESS_KEY=tsec_19MV+0AL-LM1WmeVcwCiTUUhvDqGp1BpA6ErAt+2L5FtZS_Pd
+AWS_ENDPOINT_URL_S3=https://t3.storage.dev
+AWS_REGION=auto
+
+# The Traditional Wrong Way to Upload Files to S3:
+
+##Flow: Browser → Your Server → S3
+What happens:
+- User uploads 50GB PDF on the browser
+The PDF is streamed chunk by chunk to the FastAPI server
+The server needs to store the entire file in memory/disk
+- Your server uploads it to S3
+- Finally confirms to user
+Problems:
+- Slow - File travels twice (browser→server, server→S3)
+- Expensive - Your server bandwidth gets hammered
+- Server crashes - Large files consume all memory/CPU
+- Timeout issues - HTTP requests timeout on huge files
+- Doesn't scale - 100 users = 100 concurrent uploads = dead server
+
+##The Modern (Right) Way: Presigned URLs
+Flow: Browser → S3 (direct)
+What happens:
+- Browser asks server: "Can I upload file X?"
+Server generates a temporary permission ticket (presigned URL) using AWS_SECRET_ACCESS_KEY, sends to client
+- Browser: Uploads file directly to S3 with the presigned URL
+S3: Verifies signature matches, accepts upload
+- Browser: "Upload complete!”
+Benefits:
+- Fast - File travels once, straight to destination
+- Cheap - No bandwidth cost on your server
+- Reliable - S3 handles the heavy lifting
+- Secure - Each ticket (presigned URL) works for ONE file, expires in 1 hour
+- Scales infinitely - 1000 users? No problem, the client devices upload to S3, not our server
+
+#What is a Bucket in S3?
+A bucket is S3's top-level container - think of it like a "hard drive" or "root folder" for your files.
+BUCKET_NAME is usually set as an environment variable
+One bucket can hold unlimited files
+Your AWS Account
+S3 Buckets
+— six-figure-rag (BUCKET_NAME = "six-figure-rag")
+| projects
+| avatars/
+| temp/
+my-app-2
+my-app-3
