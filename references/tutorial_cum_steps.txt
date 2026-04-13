@@ -87,8 +87,20 @@ replace id with your id
 
 // read projectpage_notes.txt
 
-//red document uploads3.txt
+//read document uploads3.txt
 
 # download boto3 - Boto3 is the official Amazon Web Services (AWS) Software Development Kit (SDK) for Python, allowing developers to 
 create, update, and delete AWS resources like S3, EC2, and DynamoDB directly from Python scripts. It offers both low-level client interfaces
- and higher-level object-oriented resources
+ and higher-level object-oriented resources 
+
+Introduction To Background Processing
+
+refer redis_celery.txt
+
+1. Install Redis server and Celery for our application
+2. Start the Redis server
+3. We will create a Celery app and understand the configuration and what each parameter does
+4. We will create/define our first task - Simple Example
+5. Connecting to FastAPI - How to trigger tasks from your API
+6. Starting the Celery worker - The command to run
+7. Testing everything - Complete flow with all 3 terminals

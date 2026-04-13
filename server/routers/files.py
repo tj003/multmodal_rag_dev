@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from database import supabase, s3_client, BUCKET_NAME
 from auth import get_current_user
-
+from tasks import process_document
 router = APIRouter(tags=["files"])
 
 class FileUploadRequest(BaseModel):
@@ -101,11 +101,21 @@ async def confirm_file_upload(
             "processing_status": "queued"
         }).eq("s3_key", s3_key).eq("project_id", project_id).eq("clerk_id", clerk_id).execute()
 
+        document = result.data[0]
+        document_id = document['id']
         if not result.data:
             raise HTTPException(status_code=404, detail="document not found or access denied")
         
         # start background preprocessing task - in production, we would likely push a message to a queue here for asynchronous processing by a worker. For simplicity, we'll just simulate this with a print statement
-        document = result.data[0]
+        
+        task = process_document.delay(document_id)
+
+        # store the Celery task ID in the database so we can track the status of the task later if needed
+        supabase.table("project_documents").update({
+            "task_id": task.id
+        }).eq("id", document_id).execute()
+        
+        
         return {
             "message": "File upload confirmed, processing started with Celery Worker",
             "data": document
@@ -142,7 +152,15 @@ async def add_website_url(
             raise HTTPException(status_code=500, detail="Failed to add URL to database")
         
         # start background processing task for the URL - in production, we would likely push a message to a queue here for asynchronous processing by a worker. For simplicity, we'll just simulate this with a print statement
+        # start background preprocessing task - in production, we would likely push a message to a queue here for asynchronous processing by a worker. For simplicity, we'll just simulate this with a print statement
+        document = result.data[0]
+        document_id = document['id']
+        task = process_document.delay(document_id)
 
+        # store the Celery task ID in the database so we can track the status of the task later if needed
+        supabase.table("project_documents").update({
+            "task_id": task.id
+        }).eq("id", document_id).execute()
         return {
             "message" : "URL added successfully, processing started with Celery Worker",
             "data": result.data[0]
