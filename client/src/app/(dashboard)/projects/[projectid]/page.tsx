@@ -13,6 +13,7 @@ import { NotFound } from '@/components/ui/NotFound';
 import { Preahvihear } from 'next/dist/compiled/@next/font/dist/google';
 import toast from 'react-hot-toast';
 import { Project, Chat, ProjectDocument, ProjectSettings } from "@/lib/types";
+import { get } from 'http';
 
 interface ProjectPageProps{
     params: Promise<{
@@ -91,6 +92,34 @@ function ProjectPage({ params }:ProjectPageProps) {
     loadAllData();
     },[userId, projectId]);
    
+    useEffect(() => {
+        const hasProcessingDocuments = data.documents.some(
+            (doc) => 
+                doc.processing_status && 
+            !["completed", "failed"].includes(doc.processing_status)
+        );
+        if(!hasProcessingDocuments){
+            return;
+        }
+        const pollinterval = setInterval(async () => {
+            try{
+                const token = await getToken();
+                const documentRes = await apiClient.get(
+                    `/api/projects/${projectId}/files`,
+                    token
+                );
+
+                setData((prev) => ({
+                    ...prev,
+                    documents: documentRes.data
+                }));
+            } catch (error) {
+                console.error("Error occurred while polling document status:", error);
+            }
+        }, 2000);
+        return () => clearInterval(pollinterval);
+    }, [data.documents, projectId, getToken]);
+
 
     //chat related method
     const handleCreateNewChat = async () =>{

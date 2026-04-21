@@ -104,3 +104,7 @@ refer redis_celery.txt
 5. Connecting to FastAPI - How to trigger tasks from your API
 6. Starting the Celery worker - The command to run
 7. Testing everything - Complete flow with all 3 terminals
+
+we implement Celery tasks for downloading the pdfs whenever someone uploads fro  frontend and chunk it and partioon
+
+we use short pooling for running apis every 2 sec in order to display new data
