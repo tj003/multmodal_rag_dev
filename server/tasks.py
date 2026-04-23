@@ -12,7 +12,13 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.messages import HumanMessage
 
 # Initialize LLM for summarization
-llm = ChatOpenAI(model="gpt-4-turbo", temperature=0)
+llm = ChatOpenAI(model="gpt-4-turbo", temperature=0)\
+
+# initialize embeddings model
+embeddings_model = OpenAIEmbeddings(
+    model="text-embedding-3-large",
+    dimensions=1536
+)
 
 celery_app = Celery(
     'document_processor', # Name of the Celery application
@@ -73,6 +79,13 @@ def process_document(document_id: str):
         
 
         # step 4 : vectorizing and storing
+        update_status(document_id, 'vectorizing')
+        stored_chunk_ids = store_chunks_with_embeddings(document_id, processed_chunks)
+
+        # mark document as completed with final details
+        update_status(document_id, "completed")
+        print(f"Celery task for Document {document_id} processing completed successfully with {len(stored_chunk_ids)} chunks stored.")
+
         
         return {
             "status": "success",
@@ -363,3 +376,49 @@ SEARCH INDEX:"""
         
     except Exception as e:
         print(f" AI summary failed: {e}")
+
+def store_chunks_with_embeddings(document_id: str, processed_chunks: list):
+    """Generate embeddings and store chunks in one efficient operation"""
+    print("Generating embeddings and storing chunks...")
+
+    if not processed_chunks:
+        print("No chunks to store.")
+        return []
+    
+    # step 1: Generate embeddings for all chunks
+    print(f"Generating embeddings for {len(processed_chunks)} chunks...")
+
+    # extract content for embedding generation
+    texts = [chunk_data['content'] for chunk_data in processed_chunks]
+
+    # generate embeddings in batch to avoid API limits
+
+    batch_size = 10
+    all_embeddings = []
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i:i+batch_size]
+        batch_embeddings = embeddings_model.embed_documents(batch_texts)
+        all_embeddings.extend(batch_embeddings)
+        print(f"Generating embeddings for batch {i//batch_size + 1} / {(len(texts) + batch_size - 1) // batch_size}")
+
+    #step2 store chunks with embeddings
+    print("Storing chunks with embeddings in database...")
+    stored_chunk_ids = []
+
+    for i, (chunk_data, embedding) in enumerate(zip(processed_chunks,all_embeddings)):
+
+        # add dcoument_id, chunk_index nd embedding
+        chunk_data_with_embedding = {
+            **chunk_data,
+            'document_id': document_id,
+            'chunk_index': i,
+            'embedding': embedding
+        }
+        result = supabase.table("document_chunks").insert(chunk_data_with_embedding).execute()
+        stored_chunk_ids.append(result.data[0]['id'])
+
+    print(f"Successfully stored {len(stored_chunk_ids)} chunks with embeddings for document {document_id}")
+
+    return stored_chunk_ids
+
+
