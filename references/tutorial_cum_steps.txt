@@ -112,3 +112,21 @@ we use short pooling for running apis every 2 sec in order to display new data
 # Web scraping 
 
 refer web_scraping.txt
+
+# Building the chat Architecture
+Goal: Create a functional chat UI that can send/receive messages (without advanced RAG or streaming support yet)
+
+Introduction to Chat Architecture
+
+GET Messages API
+
+POST Message API
+
+Store User Message
+
+Generate simple AI response (direct LLM call, no RAG, no Streaming)
+
+Frontend Integration
+
+This will lay the foundation for our Chat Interface so in the next few sections, we can focus on advanced RAG techniques.
+

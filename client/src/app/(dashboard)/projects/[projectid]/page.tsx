@@ -14,6 +14,7 @@ import { Preahvihear } from 'next/dist/compiled/@next/font/dist/google';
 import toast from 'react-hot-toast';
 import { Project, Chat, ProjectDocument, ProjectSettings } from "@/lib/types";
 import { get } from 'http';
+import { useRouter } from 'next/navigation';
 
 interface ProjectPageProps{
     params: Promise<{
@@ -32,6 +33,7 @@ interface ProjectData {
 function ProjectPage({ params }:ProjectPageProps) {
     const { projectId } = use(params);
     const { getToken, userId } = useAuth();
+    const router = useRouter();
 
     // data state 
 
@@ -175,7 +177,7 @@ function ProjectPage({ params }:ProjectPageProps) {
         
     }
     const handleChatClick = async (chatId: string) => {
-        console.log("Navigating to chat:", chatId);
+        router.push(`/projects/${projectId}/chats/${chatId}`);
     };
     const handleDocumentUpload = async (files  : File []) =>{
         console.log("Uploading Files", files);

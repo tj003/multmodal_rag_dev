@@ -6,6 +6,9 @@ from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.docx import partition_docx
 from unstructured.partition.html import partition_html
 from unstructured.chunking.title import chunk_by_title
+from unstructured.partition.pptx import partition_pptx
+from unstructured.partition.text import partition_text
+from unstructured.partition.md import partition_md
 import os
 import tempfile
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -170,7 +173,7 @@ def partition_document(file_path: str, file_type: str, source_type:  str = "file
             filename=file_path
         )
 
-    if file_type == "pdf":
+    elif file_type == "pdf":
         return partition_pdf(
             # filename=file_path,
             # strategy="hi_res", # use th emot accurate but slowest strategy to capture as much layout information as possible
@@ -185,6 +188,29 @@ def partition_document(file_path: str, file_type: str, source_type:  str = "file
             extract_image_block_types=["Image"],
             extract_image_block_to_payload=True
         )
+    elif file_type == "docx":
+        return partition_docx(
+            filename=file_path,
+            strategy="hi_res",
+            infer_table_structure=False,
+        )
+    elif file_type == "pptx":
+        return partition_pptx(
+            filename=file_path,
+            strategy="hi_res",
+            infer_table_structure=False,
+        )
+
+    elif file_type == "txt":
+        return partition_text(
+            filename=file_path,
+        )
+    elif file_type == "md":
+        return partition_md(
+            filename=file_path,
+        )
+    
+
 
 
 def analyze_summary(elements):
