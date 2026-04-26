@@ -63,7 +63,7 @@ CREATE TABLE document_chunks (
     char_count INTEGER NOT NULL,
     type JSON NOT NULL,
     original_content JSON NOT NULL,
-    embedding vector(1536),
+    embedding vector(768),
     fts tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED,
     created_at TIMESTAMPTZ DEFAULT now()
 );

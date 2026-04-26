@@ -1,0 +1,65 @@
+Traditional method (Using Requests):
+Traditionally, python's in-built requests module was used to scrape websites.
+The requests module is Python's most popular HTTP library for making web requests. It's simple, elegant, and
+works great for basic tasks:
+import requests
+response = requests.get("https://example.com")
+html = response.text
+For straightforward API calls or simple web pages, requests is perfect. But when scraping modern websites, it
+runs into serious limitations.
+
+Drawbacks of Using Requests:
+1. No JavaScript Execution
+requests only fetches raw HTML from the server. Most modern websites (SPAs built with React, Vue, Angular) render content
+dynamically using JavaScript. What you get with requests is often an empty shell:
+The actual content never appears because JavaScript never runs.
+<div id="root"></div>
+<script src="app.js"></script>
+
+Drawbacks of Using Requests:
+2. Bot Detection & Blocking
+Websites can easily identify requests as a bot through:
+- User-Agent headers: requests sends python-requests/2.x.x by default
+- Missing browser fingerprints: No cookies, no browser-specific headers
+- Behavioral patterns: No mouse movements, instant page loads
+- TLS fingerprinting: Python's TLS handshake differs from browsers
+Result: You get blocked, rate-limited, or served CAPTCHA pages.
+
+Drawbacks of Using Requests:
+3. CAPTCHA Challenges
+Many sites protect themselves with:
+- reCAPTCHA
+- Cloudflare challenges
+- Custom bot detection systems
+requests has no way to solve these programmatically.
+4. IP Blocking
+Repeated requests from the same IP get flagged and blocked. You're left scraping nothing but error pages.
+
+Common Workarounds (And Why They Fall Short)
+Selenium/Playwright
+from selenium import webdriver
+driver = webdriver. Chrome()
+driver.get("https://example.com")
+Pros: Executes JavaScript, acts like a real browser
+Cons:
+- Extremely slow (3-10x slower than requests)
+Resource-heavy (RAM, CPU)
+Still detectable through WebDriver flags
+- Complex to deploy and maintain at scale
+
+Solution:
+There exists cloud services for the age of AI. We're going to be using this service called Scraping Bee.
+Scraping Bee is a scraping API that handles all the complexity for you. It's essentially "web scraping as a service."
+Key Benefits:
+1. JavaScript Rendering Built-in
+2. Automatic Bot Detection Bypass
+3. CAPTCHA Solving (Scraping Bee can automatically solve common CAPTCHAs (with premium plans))
+4. Simple API (You get all the power of Selenium with the simplicity of requests)
+
+Process:
+1. You send a request with your target URL
+2. Scraping Bee selects a proxy from their rotating pool
+3. Launches a real browser (if JavaScript rendering needed)
+4. Executes JavaScript and waits for content to load
+5. Handles any CAPTCHAS or bot challenges
+6. Returns clean HTML to your application

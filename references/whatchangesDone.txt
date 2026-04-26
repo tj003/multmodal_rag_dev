@@ -1,0 +1,4 @@
+# deveoped on windows
+# unstuctred.io support table extarction on linux and mac only so handled that issue by disabling the table infer
+# used groq for LLM and gemini for embedding as we need less than 2000 dimension of embedding model and free 
+# uploaded images in s3 from document and stored the refernce only in DB

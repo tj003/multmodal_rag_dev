@@ -145,6 +145,8 @@ async def add_website_url(
             "file_size": 0,
             "file_type": "text/html",
             "processing_status": "queued",
+            "source_type": "url",
+            "source_url": url,
             "clerk_id": clerk_id
         }).execute()
 
@@ -210,3 +212,27 @@ async def delete_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete file: {str(e)}")
         
+@router.get("/api/projects/{project_id}/files/{file_id}/chunks")
+async def get_document_chunks(
+    project_id: str,
+    file_id: str,
+    clerk_id: str= Depends(get_current_user)
+):
+    try:
+        project_result = supabase.table('projects').select('id').eq('id', project_id).eq('clerk_id', clerk_id).execute()
+        if not project_result.data:
+            raise HTTPException(status_code=404, detail="Project not found or access denied")
+        doc_result = supabase.table('project_documents').select('id').eq('id', file_id).eq('project_id', project_id).execute()
+
+        if not doc_result.data:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        chunk_result = supabase.table('document_chunks').select('*').eq('document_id', file_id).order('chunk_index').execute()
+
+        return {
+            "message": "Document chunks retrieved successfully",
+            "data": chunk_result.data or []
+        }
+    except Exception as e:
+        print(f"Error retrieving document chunks: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve document chunks: {str(e)}")

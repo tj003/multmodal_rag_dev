@@ -1,0 +1,3 @@
+add redis to store processed documents or use SHA encrypt on documents and store that key in DB and whenever same document uploaded again 
+and just encrypt the text and match encryption from DB to show the results
+add images from s3 to UI for hunks of s3

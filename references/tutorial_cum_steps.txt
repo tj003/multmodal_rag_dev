@@ -108,3 +108,7 @@ refer redis_celery.txt
 we implement Celery tasks for downloading the pdfs whenever someone uploads fro  frontend and chunk it and partioon
 
 we use short pooling for running apis every 2 sec in order to display new data
+
+# Web scraping 
+
+refer web_scraping.txt

@@ -10,14 +10,29 @@ import os
 import tempfile
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.messages import HumanMessage
-
+from langchain_groq import ChatGroq
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI
+from scrapingbee import ScrapingBeeClient
+from dotenv import load_dotenv
+load_dotenv()
 # Initialize LLM for summarization
-llm = ChatOpenAI(model="gpt-4-turbo", temperature=0)\
+# llm = ChatOpenAI(model="gpt-4-turbo", temperature=0)
 
-# initialize embeddings model
-embeddings_model = OpenAIEmbeddings(
-    model="text-embedding-3-large",
-    dimensions=1536
+scarpingbee_client = ScrapingBeeClient(api_key = os.getenv("SCRAPINGBEE_API_KEY"))
+
+llm = ChatGroq(
+    model="meta-llama/llama-4-scout-17b-16e-instruct",  # current vision model
+    temperature=0,
+    groq_api_key=os.getenv("GROQ_API_KEY")
+)
+
+
+# Embeddings - gemini-embedding-2 is the latest
+embeddings_model = GoogleGenerativeAIEmbeddings(
+    model="models/gemini-embedding-2",
+    google_api_key=os.getenv("GEMINI_API_KEY"),
+    output_dimensionality=768  # ← truncates to 768, HNSW compatible 
 )
 
 celery_app = Celery(
@@ -106,7 +121,19 @@ def download_and_partition(document_id: str, document: str):
 
     if source_type == "url":
         # crwal the url and get the content
-        pass
+        
+        url  = document["source_url"]
+
+        # fetch content with ScrapingBee
+        response = scarpingbee_client.get(url)
+        temp_file = os.path.join(tempfile.gettempdir(), f"{document_id}.html")
+        # save to temp file
+        # temp_file = f"/tmp/{document_id}.html"
+        with open(temp_file, "wb") as f:
+            f.write(response.content)
+
+        elements = partition_document(temp_file, "html", source_type="url")
+        # fetch content with scrapingbee
     else:
         # handle file processing
         s3_key = document["s3_key"]
@@ -139,7 +166,9 @@ def partition_document(file_path: str, file_type: str, source_type:  str = "file
     """Partition document based on file type and source type"""
 
     if source_type == "url":
-        pass
+        return partition_html(
+            filename=file_path
+        )
 
     if file_type == "pdf":
         return partition_pdf(
@@ -183,9 +212,9 @@ def analyze_summary(elements):
     
     return {
         "text": text_count,
-        "table": table_count,
-        "image": image_count,
-        "title": title_count,
+        "tables": table_count,
+        "images": image_count,
+        "titles": title_count,
         "other": other_count
     }
 
@@ -235,6 +264,16 @@ def summarise_chunks(chunks, document_id, source_type = "file"):
         print(f"Types found: {content_data['types']}")
         print(f"Tables {len(content_data['tables'])}, Images: {len(content_data['images'])}")
 
+        # ✅ Upload images to S3, replace base64 with S3 keys
+        image_s3_keys = []
+        for img_index, image_base64 in enumerate(content_data['images']):
+            try:
+                s3_key = upload_image_to_s3(image_base64, document_id, f"{i}_{img_index}")
+                image_s3_keys.append(s3_key)
+                print(f"✅ Image uploaded to S3: {s3_key}")
+            except Exception as e:
+                print(f"⚠️ Failed to upload image to S3: {e}")
+
         # decide if we need to summarisation
         if content_data['tables'] or content_data['images']:
             print(f"Creating AI summary for mixed content...")
@@ -243,15 +282,19 @@ def summarise_chunks(chunks, document_id, source_type = "file"):
                 content_data['tables'],
                 content_data['images']
                 )
+            # Belt-and-suspenders: if somehow still None
+            if not enhanced_content:
+                enhanced_content = content_data['text']
         else:
-            enhanced_content = current_chunk['text']
+            enhanced_content = content_data['text']
+
 
         # build the original _content structure
         original_content = {'text': content_data['text']}
         if content_data['tables']:
             original_content['tables'] = content_data['tables']
         if content_data['images']:
-            original_content['images'] = content_data['images']
+            original_content['images'] = image_s3_keys  # store S3 keys instead of base64 in original content for reference
 
         # create processed chunk  withall data
 
@@ -283,33 +326,44 @@ def get_page_number(chunk, chunk_index):
 def separate_content_types(chunk, source_type="file"):
     """Analyze what types of content are in a chunk"""
     is_url_source = source_type == 'url'
-    
+
+    # chunk.text can be empty on CompositeElements — rebuild from orig_elements
+    raw_text = chunk.text or ""
+
     content_data = {
-        'text': chunk.text,
+        'text': raw_text,
         'tables': [],
         'images': [],
         'types': ['text']
     }
-    
-    # Check for tables and images in original elements
+
     if hasattr(chunk, 'metadata') and hasattr(chunk.metadata, 'orig_elements'):
+        text_parts = []
         for element in chunk.metadata.orig_elements:
             element_type = type(element).__name__
-            
-            # Handle tables
+
             if element_type == 'Table':
                 content_data['types'].append('table')
                 table_html = getattr(element.metadata, 'text_as_html', element.text)
                 content_data['tables'].append(table_html)
-            
-            # Handle images (skip for URL sources)
+
             elif element_type == 'Image' and not is_url_source:
-                if (hasattr(element, 'metadata') and 
-                    hasattr(element.metadata, 'image_base64') and 
+                if (hasattr(element, 'metadata') and
+                    hasattr(element.metadata, 'image_base64') and
                     element.metadata.image_base64 is not None):
                     content_data['types'].append('image')
                     content_data['images'].append(element.metadata.image_base64)
-    
+
+            else:
+                # Collect text from all non-table, non-image elements
+                if element.text and element.text.strip():
+                    text_parts.append(element.text.strip())
+
+        # If chunk.text was empty, use reconstructed text from orig_elements
+        if not content_data['text'] and text_parts:
+            content_data['text'] = '\n'.join(text_parts)
+            print(f"  ↩️ Rebuilt text from {len(text_parts)} orig_elements ({len(content_data['text'])} chars)")
+
     content_data['types'] = list(set(content_data['types']))
     return content_data
 
@@ -376,49 +430,93 @@ SEARCH INDEX:"""
         
     except Exception as e:
         print(f" AI summary failed: {e}")
+        return text 
 
 def store_chunks_with_embeddings(document_id: str, processed_chunks: list):
-    """Generate embeddings and store chunks in one efficient operation"""
-    print("Generating embeddings and storing chunks...")
+    print(f"Generating embeddings and storing chunks...")
 
     if not processed_chunks:
         print("No chunks to store.")
         return []
-    
-    # step 1: Generate embeddings for all chunks
-    print(f"Generating embeddings for {len(processed_chunks)} chunks...")
 
-    # extract content for embedding generation
+    # Preflight: fix any empty content
+    empty_chunks = []
+    for i, chunk_data in enumerate(processed_chunks):
+        if not chunk_data.get('content'):
+            fallback = chunk_data.get('original_content', {}).get('text', f'[empty chunk {i}]')
+            chunk_data['content'] = fallback or f'[empty chunk {i}]'
+            empty_chunks.append(i)
+
+    if empty_chunks:
+        print(f"⚠️ Fixed {len(empty_chunks)} empty-content chunks: {empty_chunks}")
+
     texts = [chunk_data['content'] for chunk_data in processed_chunks]
 
-    # generate embeddings in batch to avoid API limits
-
-    batch_size = 10
+    # ✅ Bypass LangChain batching bug — embed one at a time via embed_query
+    # embed_documents has a known result-aggregation bug with gemini-embedding-2
+    print(f"Embedding {len(texts)} chunks individually...")
     all_embeddings = []
-    for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i+batch_size]
-        batch_embeddings = embeddings_model.embed_documents(batch_texts)
-        all_embeddings.extend(batch_embeddings)
-        print(f"Generating embeddings for batch {i//batch_size + 1} / {(len(texts) + batch_size - 1) // batch_size}")
+    for i, text in enumerate(texts):
+        try:
+            embedding = embeddings_model.embed_query(text)
+            all_embeddings.append(embedding)
+            if (i + 1) % 5 == 0 or (i + 1) == len(texts):
+                print(f"  📐 Embedded {i+1}/{len(texts)}")
+        except Exception as e:
+            print(f"❌ Failed to embed chunk {i}: {e}")
+            # Use zero vector as fallback so zip stays aligned
+            all_embeddings.append([0.0] * 768)
 
-    #step2 store chunks with embeddings
+    print(f"📦 all_embeddings count: {len(all_embeddings)}")
+
+    if len(all_embeddings) != len(processed_chunks):
+        raise ValueError(
+            f"Embedding count mismatch: got {len(all_embeddings)} for "
+            f"{len(processed_chunks)} chunks."
+        )
+
     print("Storing chunks with embeddings in database...")
     stored_chunk_ids = []
 
-    for i, (chunk_data, embedding) in enumerate(zip(processed_chunks,all_embeddings)):
+    for i, (chunk_data, embedding) in enumerate(zip(processed_chunks, all_embeddings)):
+        original_content = chunk_data.get('original_content', {})
+        safe_original_content = {
+            'text': original_content.get('text', ''),
+            'tables': original_content.get('tables', []),
+            'image_keys': original_content.get('images', [])
+        }
 
-        # add dcoument_id, chunk_index nd embedding
         chunk_data_with_embedding = {
-            **chunk_data,
             'document_id': document_id,
             'chunk_index': i,
-            'embedding': embedding
+            'embedding': embedding,
+            'content': chunk_data['content'],
+            'original_content': safe_original_content,
+            'type': chunk_data['type'],
+            'page_number': chunk_data['page_number'],
+            'char_count': chunk_data['char_count'],
         }
-        result = supabase.table("document_chunks").insert(chunk_data_with_embedding).execute()
-        stored_chunk_ids.append(result.data[0]['id'])
 
-    print(f"Successfully stored {len(stored_chunk_ids)} chunks with embeddings for document {document_id}")
+        try:
+            result = supabase.table("document_chunks").insert(chunk_data_with_embedding).execute()
+            stored_chunk_ids.append(result.data[0]['id'])
+            print(f"✅ Stored chunk {i+1}/{len(processed_chunks)}")
+        except Exception as e:
+            print(f"❌ Failed to store chunk {i+1}: {type(e).__name__}: {e}")
+            continue
 
+    print(f"Successfully stored {len(stored_chunk_ids)} chunks for document {document_id}")
     return stored_chunk_ids
 
 
+def upload_image_to_s3(image_base64, document_id, image_index):
+    import base64
+    image_bytes = base64.b64decode(image_base64)
+    s3_key = f"images/{document_id}/image_{image_index}.jpg"
+    s3_client.put_object(
+        Bucket=BUCKET_NAME,
+        Key=s3_key,
+        Body=image_bytes,
+        ContentType="image/jpeg"
+    )
+    return s3_key 
