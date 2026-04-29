@@ -65,7 +65,8 @@ function ProjectPage({ params }:ProjectPageProps) {
             try{
                 setLoading(true);
                 setError(null)    
-                const token = await getToken(); 
+                const token = await getToken();
+                console.log("projectId:", projectId); 
                 const [projectRes, chatsRes, documentRes , settingsRes] = await Promise.all([
                     apiClient.get(`/api/projects/${projectId}`,token),
                     apiClient.get(`/api/projects/${projectId}/chats`,token),

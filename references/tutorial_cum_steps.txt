@@ -130,3 +130,17 @@ Frontend Integration
 
 This will lay the foundation for our Chat Interface so in the next few sections, we can focus on advanced RAG techniques.
 
+What is a PostgreSQL function?
+A PostgreSQL function is a reusable piece of code that lives and runs inside your database
+It is like any function in any programming language, but executes directly on your data and lives in the database itself
+It can accept parameters, perform operations, and return results
+
+| Encapsulates complex logic in one place for consistency and maintainability
+Alternative to writing raw queries - instead of .insert(), .select(), .update() in your app code, you call one function that handles complex
+operations
+Goes beyond simple CRUD - when basic insert/select/update/delete isn't enough, functions let you write custom logic
+Called via RPC (Remote Procedure Call). It lets you execute a function on a remote server (PostgreSQL), as if it were running locally in
+your code
+
+# new postgres fucntions sql file explaination
+20260429065908_chunk_search_functions.sql

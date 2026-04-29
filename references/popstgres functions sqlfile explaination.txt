@@ -1,0 +1,168 @@
+Complete Step-by-Step Explanation of vector_search_document_chunks:
+Part 1: Function Declaration
+
+| CREATE OR REPLACE FUNCTION vector_search_document_chunks 
+
+What it does: Creates a new PostgreSQL function named vector_search_document_chunks, or replaces it if it already fxists.
+Why: This is a reusable database function you can call from your application code.
+
+Part 2: Input Parameters
+< (
+| query_embedding vector,
+filter_document_ids uuid[],
+match_threshold double precision DEFAULT ©.3,
+chunks_pex_search integer DEFAULT 20
+)
+1. query_embedding vector - The user's search query as a 1536-dimensional vector (OpenAI embeddings).
+
+2. filter_document_ids uuid[] - Array of document IDs to search within. Why? Security - only search documents the user can access.
+
+3. match_threshold double precision DEFAULT 0.3 - Minimum similarity score - DEFAULT - 0.3 (30% similarity)
+
+4. chunks_per_search integer DEFAULT 20 - Maximum number of chunks to return
+
+Part 3: Return Type
+
+RETURNS TABLE(
+    id uuid,
+    document_id uuid,
+    content text,
+    chunk_index integer,
+    created_at timestamp with time zone,
+    page_number integer,
+    char_count integer,
+    type jsonb,
+    original_content jsonb,
+    embedding vector
+)
+
+What it does: Specifies that this function returns an array of objects, where each object has these fields:
+
+Part 4 language specification
+
+Langauage sql 
+
+it tells PostgreSQL this funtion is written in pure SQL (not PL/pgSQL,Python, JS,etc)
+and it is needed as PostgreSQL support multiple language of functiond
+
+Complete Step-by-Step Explanation of vector_search_document_chunks:
+
+Part 5: Function Body Delimiter
+
+AS $function$
+
+What it does: Marks the start of the function body
+
+Technical detail: $function$ is a "dollar-quoted string delimiter" – it's like opening a code block. You could use $$ but $function$ is more readable.
+
+Part 6: The SELECT Clause
+
+SELECT
+    dc.id,
+    dc.document_id,
+    dc.content,
+    dc.chunk_index,
+    dc.created_at,
+    dc.page_number,
+    dc.char_count,
+    dc.type,
+    dc.original_content,
+    dc.embedding
+
+What it does: Specifies which columns to retrieve from the database
+
+The dc. prefix: dc is an alias (shorthand) for the document_chunks table defined in the FROM clause. It means "get this column from the document_chunks table."
+
+Why list all these: These columns must match what you promised in RETURNS TABLE(...) above.
+
+Part 7: The FROM Clause
+
+FROM
+    document_chunks dc
+
+What it does: Specifies which table to query
+
+- document_chunks = the table name
+- dc = an alias (nickname) for this table
+- Now you can write dc.id instead of document_chunks.id throughout the query
+
+Part 8: The WHERE Clause - Filter 1
+
+WHERE
+    dc.document_id = ANY(filter_document_ids)
+
+What it does: Only include chunks from the specified documents
+
+Breaking it down:
+- filter_document_ids is the array of UUIDs you passed as a parameter (e.g., ['doc-123', 'doc-456'])
+- ANY(filter_document_ids) means "any value inside this array"
+- dc.document_id = ANY(...) means "the chunk's document_id matches at least one UUID in the array"
+
+Part 9: The WHERE Clause - Filter 2
+
+AND dc.embedding IS NOT NULL
+
+What it does: Skip chunks that don't have embeddings yet
+
+Part 10: The WHERE Clause - Filter 3 (The Core Vector Search)
+
+AND (1 - (dc.embedding <=> query_embedding)) > match_threshold
+
+What it does: Only keep chunks that are similar enough to the query
+
+Step 1: Calculate cosine distance
+dc.embedding <=> query_embedding
+
+- <=> = cosine distance operator (pgvector)
+- Calculates how "distant" the chunk's embedding is from the query embedding
+- Lower value = more similar (vectors are closer)
+
+Step 2: Convert cosine distance to cosine similarity
+1 - (dc.embedding <=> query_embedding)
+
+- Converts cosine distance into a cosine similarity score
+- Higher value = more similar
+- Range: approximately 0.0 (totally different) to 1.0 (identical)
+
+Example:
+If distance = 0.2 → similarity = 1 - 0.2 = 0.8 (80% similar) ✅
+If distance = 0.8 → similarity = 1 - 0.8 = 0.2 (20% similar) ❌
+
+Step 3: Apply threshold
+
+- Only keeps chunks with similarity ≥ threshold (default 0.3 = 30%)
+- Filters out irrelevant results
+
+Why: Without this, you'd get millions of results, most irrelevant. This keeps only semantically similar content.
+
+Part 11: The ORDER BY Clause
+
+ORDER BY
+    dc.embedding <=> query_embedding ASC
+
+What it does: Sorts the remaining chunks by similarity (most similar first)
+
+Breaking it down:
+- Uses the same <=> operator to calculate distance
+- Smaller distance = more similar = appears first in results
+- This ensures the best matches are at the top
+
+NOTE!
+
+We use the distance calculation twice:
+1. In WHERE to filter (must be above threshold)
+2. In ORDER BY to rank (best matches first)
+
+This is intentional and efficient - PostgreSQL can use the HNSW index for both operations.
+
+Part 12: The LIMIT Clause
+
+Returns only the top N results
+
+Part 13: Function Body End
+
+$function$;
+
+What it does: Marks the end of the function body (closes the $function$ opened earlier)
+
+The semicolon ; ends the entire CREATE FUNCTION statement.
