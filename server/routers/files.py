@@ -82,6 +82,8 @@ async def get_upload_url(
          }
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to generate presigned URL: {str(e)}")
     
 @router.post("/api/projects/{project_id}/files/confirm")

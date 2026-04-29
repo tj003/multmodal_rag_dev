@@ -30,7 +30,6 @@ llm = ChatGroq(
     groq_api_key=os.getenv("GROQ_API_KEY")
 )
 
-
 # Embeddings - gemini-embedding-2 is the latest
 embeddings_model = GoogleGenerativeAIEmbeddings(
     model="models/gemini-embedding-2",
