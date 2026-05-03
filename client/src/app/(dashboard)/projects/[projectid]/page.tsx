@@ -141,6 +141,8 @@ function ProjectPage({ params }:ProjectPageProps) {
             },token)
 
             const savedChat = result.data[0] 
+
+            router.push(`/projects/${projectId}/chats/${savedChat.id}`);
             ///update local state with new chat
             setData((prev) => ({
                 ...prev,

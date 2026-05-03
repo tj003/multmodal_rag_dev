@@ -172,7 +172,7 @@ const SliderField = ({
       min={min}
       max={max}
       step={step}
-      value={value}
+      value={value ?? min} 
       onChange={onChange}
       disabled={disabled}
       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50 slider"
@@ -293,7 +293,7 @@ export function KnowledgeBaseSidebar({
     // Calculate chunks
     const isMultiQuery = projectSettings.rag_strategy.includes("multi-query");
     const totalChunks =
-      projectSettings.chunks_per_search *
+      projectSettings.chunk_per_search *
       (isMultiQuery ? projectSettings.number_of_queries : 1);
 
     // Calculate latency
@@ -653,12 +653,12 @@ export function KnowledgeBaseSidebar({
 
                   <SliderField
                     label="Chunks per Search"
-                    value={projectSettings.chunks_per_search}
+                    value={projectSettings.chunk_per_search}
                     min={5}
                     max={30}
                     onChange={(e) =>
                       onUpdateSettings({
-                        chunks_per_search: parseInt(e.target.value),
+                        chunk_per_search: parseInt(e.target.value),
                       })
                     }
                     disabled={settingsLoading}

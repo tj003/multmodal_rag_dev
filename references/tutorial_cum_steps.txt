@@ -144,3 +144,28 @@ your code
 
 # new postgres fucntions sql file explaination
 20260429065908_chunk_search_functions.sql
+
+messages = [
+    SystemMessage(content="Here's the text context and tables..."),  # Text only
+    HumanMessage(content=[                                  # Text + Images
+        {"type": "text", "text": user_query},
+        {"type": "image_url", "image_url": {...}},
+        {"type": "image_url", "image_url": {...}}
+    ])
+]
+
+We started from scratch, and now we have a fully functional RAG application. We’ve built:
+
+User authentication
+
+Project and document management
+
+Background document processing with Celery & Pre-signed URLs
+
+Multi-modal content extraction - handling text, tables, and images
+
+Smart chunking by title
+
+And most recently - a basic vector search pipeline that actually retrieves relevant information and generates answers
+
+All within PostgreSQL! You’re already pretty golden in the market and you’ve built a useful product.
