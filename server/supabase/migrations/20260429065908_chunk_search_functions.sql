@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION vector_search_document_chunks(
     query_embedding vector, 
     filter_document_ids uuid[], 
     match_threshold double precision DEFAULT 0.3, 
-    chunks_per_search integer DEFAULT 20
+    chunk_per_search integer DEFAULT 20
 )
 RETURNS TABLE(
     id uuid, 
@@ -12,7 +12,7 @@ RETURNS TABLE(
     created_at timestamp with time zone, 
     page_number integer, 
     char_count integer, 
-    type jsonb, 
+    "type" jsonb, 
     original_content jsonb, 
     embedding vector
 )
@@ -38,7 +38,7 @@ WHERE
 ORDER BY 
     dc.embedding <=> query_embedding ASC  
 LIMIT 
-    chunks_per_search;
+    chunk_per_search;
 $function$;
 
 
@@ -53,7 +53,7 @@ $function$;
 CREATE OR REPLACE FUNCTION keyword_search_document_chunks(
     query_text text, 
     filter_document_ids uuid[], 
-    chunks_per_search integer DEFAULT 20
+    chunk_per_search integer DEFAULT 20
 )
 RETURNS TABLE(
     id uuid, 
@@ -88,5 +88,5 @@ WHERE
 ORDER BY 
     ts_rank_cd(dc.fts, websearch_to_tsquery('english', query_text)) DESC
 LIMIT 
-    chunks_per_search;
+    chunk_per_search;
 $function$;

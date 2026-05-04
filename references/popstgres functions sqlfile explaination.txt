@@ -19,7 +19,7 @@ chunks_pex_search integer DEFAULT 20
 
 3. match_threshold double precision DEFAULT 0.3 - Minimum similarity score - DEFAULT - 0.3 (30% similarity)
 
-4. chunks_per_search integer DEFAULT 20 - Maximum number of chunks to return
+4. chunk_per_search integer DEFAULT 20 - Maximum number of chunks to return
 
 Part 3: Return Type
 
