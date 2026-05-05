@@ -1,0 +1,71 @@
+_—
+Middleware = Code that runs "in the middle" of something
+The Agent's Journey (Without Middleware)
+User Input - Model thinks - Calls tools - Model thinks again - Final Answer
+LE
+simple but rigid
+But with a Middleware, it lets you hook into these moments and add custom behavior.
+
+Types of Middleware
+| Decorator        | What it intercepts              |
+| ---------------- | ------------------------------- |
+| @wrap_model_call | Model calls (GPT, Claude, etc.) |
+| @wrap_tool_call  | Tool execution                  |
+| @dynamic_prompt  | System prompt generation        |
+
+Middleware = Code that runs at specific checkpoints during agent execution, letting you customize behavior without touching
+the core agent logic. Like plugins or interceptors
+
+@some_decorator
+def my_middleware(request, handler):
+    # 1. Do something BEFORE (optional)
+    #   - Modify request
+    #   - Check conditions
+    #   - Add logging
+
+    # 2. Call the actual thing
+    result = handler(request)
+
+    # 3. Do something AFTER (optional)
+    #   - Modify result
+    #   - Validate output
+    #   - Add logging
+
+    # 4. Return result
+    return result
+
+    Definitions:
+
+request = What’s going in
+handler = The actual operation (call model, run tool, etc.)
+result = What came out
+
+request object contains:
+
+request.state – Current agent state (messages, custom fields)
+request.model – Which model will be called
+
+Real life  use-cases
+Example 1: Message Trimming (Pre-Model)
+Problem: Your conversation has 100 messages. Sending all of them to the model is expensive and slow.
+Solution: Middleware that trims old messages before the model sees them.
+awrap_model_call
+def trim_messages (request, handler):
+    # Only keep last 10 messages
+    messages = request.state["messages"]
+    ESTUSECT Ate [ins sas ash] = messages[-10:]
+    # Now call the model with trimmed messages
+    return handler (request)
+
+Example 2: Content Filter (Post-Model)
+Problem: You don't want the model to say certain things (profanity, sensitive info, etc.)
+Solution: Middleware that checks the model's response.
+@wrap_model_call
+def content_filter (request, handler):
+# Let model respond first
+response = handler (request)
+# Check what it said
+if "badword"®in response.content.lower():
+# Replace it!
+response.content = "I cannot provide that information."
+return response 
