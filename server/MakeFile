@@ -1,0 +1,69 @@
+.PHONY: server worker redis eval-collect eval-run eval-full install docs help
+
+# ─────────────────────────────────────────
+# Development Servers
+# ─────────────────────────────────────────
+
+server:
+	./start_server.bat
+
+worker:
+	./start_worker.bat
+
+# ─────────────────────────────────────────
+# Dependencies
+# ─────────────────────────────────────────
+
+install:
+	pip install -r requirements.txt
+
+install-eval:
+	pip install ragas langchain-groq langchain-huggingface sentence-transformers
+
+install-all: install install-eval
+	@echo "✅ All dependencies installed!"
+
+# ─────────────────────────────────────────
+# Evaluation
+# ─────────────────────────────────────────
+
+eval-collect:
+	python evaluation/scripts/collect_data.py
+
+eval-run:
+	python evaluation/scripts/ragas_evaluation_script.py
+
+eval-full: eval-collect eval-run
+	@echo "✅ Evaluation complete!"
+
+# ─────────────────────────────────────────
+# Help / Docs
+# ─────────────────────────────────────────
+
+help:
+	@echo ""
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo "  Six Figure RAG — Developer Commands"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""
+	@echo "  SETUP"
+	@echo "    make install          Install core dependencies"
+	@echo "    make install-eval     Install evaluation dependencies"
+	@echo "    make install-all      Install everything"
+	@echo ""
+	@echo "  DEVELOPMENT"
+	@echo "    make server           Start FastAPI server"
+	@echo "    make worker           Start Celery worker"
+	@echo ""
+	@echo "  EVALUATION"
+	@echo "    make eval-collect     Collect data for evaluation"
+	@echo "    make eval-run         Run RAGAS evaluation script"
+	@echo "    make eval-full        Collect + Run evaluation"
+	@echo ""
+	@echo "  Required .env variables:"
+	@echo "    GROQ_API_KEY          Groq API key"
+	@echo "    GEMINI_API_KEY        Google Gemini API key"
+	@echo "    SUPABASE_URL          Supabase project URL"
+	@echo "    SUPABASE_KEY          Supabase anon/service key"
+	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+	@echo ""

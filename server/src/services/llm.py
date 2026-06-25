@@ -3,8 +3,8 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 import os
 
 models = {
-    "chat_llm": ChatGroq(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        "chat_llm": ChatGroq(
+        model="openai/gpt-oss-20b",
         temperature=0,
         groq_api_key=os.getenv("GROQ_API_KEY")
     ),

@@ -1,6 +1,7 @@
 // Basic API Client Fucntion with authentication support
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 export const apiClient = {
     get: async(endpoint: string, token: string|null) => {

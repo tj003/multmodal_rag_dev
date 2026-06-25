@@ -169,3 +169,14 @@ Smart chunking by title
 And most recently - a basic vector search pipeline that actually retrieves relevant information and generates answers
 
 All within PostgreSQL! You’re already pretty golden in the market and you’ve built a useful product.
+
+###########################################################################################################
+celery = celery -A src.services.celery:celery_app worker --loglevel=info --pool=solo
+backend - uvicorn src.server:app --reload --host 0.0.0.0 --port 8000
+frontend - npm run dev
+
+
+for running evaluation
+.\run.ps1 help
+.\run.ps1 install
+.\run.ps1 eval-full
