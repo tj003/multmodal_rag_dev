@@ -25,3 +25,6 @@ langgraph
 ddgs =9.9.1
 langchain-tavily = 0.2.13
 langchain_community
+structlog
+datasets
+ragas
