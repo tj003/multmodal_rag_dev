@@ -30,6 +30,8 @@ export function Sidebar() {
         {!isCollapsed && (
           <h1 className="text-lg font-medium text-gray-200">TJ.Builds</h1>
         )}
+        
+
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="p-2 hover:bg-[#252525] rounded-md transition-colors"

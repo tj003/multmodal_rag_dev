@@ -10,7 +10,7 @@ Postgres database, Authentication, instant APIs, Edge Functions, Realtime subscr
 - download docker
 - node js 
 - Supabase commands
-    -npx Supabase init
+    -npx supabase init
     - created config supabase files for our project
 
     - npx supabse start
@@ -79,7 +79,7 @@ payload
 {
   "type": "user.created",
   "data": {
-    "id": "user_39p2jFnDYZRUqeBw3k6SSgoXW7u"
+    "id": "user_39p2jFnDYZRUqeBw3k6SSgoXW7u" 
   }
 }
 
@@ -180,3 +180,17 @@ for running evaluation
 .\run.ps1 help
 .\run.ps1 install
 .\run.ps1 eval-full
+
+Managing your containers
+Starting services
+docker compose up --build      # Build images and start everything
+docker compose up --build -d   # Build and start in background
+docker compose up              # Start with existing images
+docker compose up -d           # Start in background with existing images
+Stopping services
+docker compose down            # Stop and remove all containers
+docker compose down -v         # Same, but also delete volumes (your Redis data)
+Restarting a single service
+docker compose restart api     # Restart just the API without touching Redis or Celery
+
+docker compose up --build  --> to run all services in docker

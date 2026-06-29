@@ -6,7 +6,7 @@ import socket
 from contextvars import ContextVar
 from typing import Optional
 import structlog
-from structlog.types import EventDict, WrappedLogge
+from structlog.types import EventDict, WrappedLogger
 
 #context variables
 request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
@@ -24,9 +24,9 @@ def get_log_level()->int:
         "WARNING": logging.WARNING,
         "ERROR": logging.ERROR,
         "CRITICAL": logging.CRITICAL
-    }.get(log_level_str, logging.INGO)
+    }.get(log_level_str, logging.INFO)
 
-def add_context_info(logger:WrrapedLogger, method_name: str, event_dict: EventDict)-> EventDict:
+def add_context_info(logger:WrappedLogger, method_name: str, event_dict: EventDict)-> EventDict:
     request_id = request_id_var.get()
     if request_id:
         event_dict["request_id"] = request_id
@@ -41,7 +41,7 @@ def add_context_info(logger:WrrapedLogger, method_name: str, event_dict: EventDi
 
     return event_dict
 
-def rename_event_to_message(logger: WrappedLogger, method_name: str, event_dict: EvenDict)->EventDict:
+def rename_event_to_message(logger: WrappedLogger, method_name: str, event_dict: EventDict)->EventDict:
     if "event" in event_dict:
         event_dict["message"] = event_dict.pop("event")
 
@@ -83,10 +83,10 @@ def configure_logging(log_filename: str = "application.log")-> None:
     # force JSON Output in development (no console renderer)
     structlog.configure(
         processors = [
-            structlog.stdlib.filters_by_level, # skip below log level
+            structlog.stdlib.filter_by_level, # skip below log level
             structlog.contextvars.merge_contextvars, # pull in request_id, user_id
-            structlog.prcessors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
-            structlog.processor.CallsiteParameterAdder(
+            structlog.processors.TimeStamper(fmt="iso", utc=True, key="timestamp"),
+            structlog.processors.CallsiteParameterAdder(
                 [
                     structlog.processors.CallsiteParameter.FILENAME,
                     structlog.processors.CallsiteParameter.FUNC_NAME,
@@ -94,7 +94,7 @@ def configure_logging(log_filename: str = "application.log")-> None:
                 ]
             ),
             structlog.stdlib.add_log_level, #add "level"
-            structlog.stdlib.add_loger_name,# adds "logger"
+            structlog.stdlib.add_logger_name,# adds "logger"
             add_context_info, # request/user/pod/host
             structlog.processors.StackInfoRenderer(),  # render stack traces
             structlog.processors.format_exc_info,  # exception info if exc_info=True

@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=False)
+
 
 if not os.getenv("SUPABASE_API_URL") or not os.getenv("SUPABASE_SERVICE_KEY"):
     raise ValueError(
@@ -10,6 +11,7 @@ if not os.getenv("SUPABASE_API_URL") or not os.getenv("SUPABASE_SERVICE_KEY"):
 
 if not os.getenv("CLERK_SECRET_KEY") or not os.getenv("DOMAIN"):
     raise ValueError("CLERK_SECRET_KEY and DOMAIN must be set in .env file")
+
 
 
 if (
@@ -27,10 +29,10 @@ if not os.getenv("REDIS_URL"):
 
 # if not os.getenv("OPENAI_API_KEY"):
 #     raise ValueError("OPENAI_API_KEY must be set in .env file")
-if not os.getenv("groq_api_key"):
-    raise ValueError("groq_api_key must be set in .env file")
+if not os.getenv("GROQ_API_KEY"):
+    raise ValueError("GROQ_API_KEY must be set in .env file")
 
-if not os.getenv("gemini_api_key"):
+if not os.getenv("GEMINI_API_KEY"):
     raise ValueError("gemini_api_key must be set in .env file")
 
 if not os.getenv("SCRAPINGBEE_API_KEY"):
@@ -51,4 +53,5 @@ appConfig = {
     "groq_api_key": os.getenv("GROQ_API_KEY"),
     "gemini_api_key": os.getenv("GEMINI_API_KEY"),
     "scrapingbee_api_key": os.getenv("SCRAPINGBEE_API_KEY"),
+    "CLERK_JWT_PUBLIC_KEY": os.getenv("CLERK_JWT_PUBLIC_KEY"),
 }

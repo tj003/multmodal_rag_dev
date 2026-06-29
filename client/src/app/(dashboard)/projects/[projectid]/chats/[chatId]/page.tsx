@@ -1,14 +1,16 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { ChatWithMessages } from "@/lib/types";
+import { ChatWithMessages, Message } from "@/lib/types";
 import { apiClient } from "@/lib/api";
 import { MessageFeedbackModal } from "@/components/chat/MessageFeedbackModel";
 import toast from "react-hot-toast";
 import { NotFound } from "@/components/ui/NotFound";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 interface ProjectChatPageProps {
   params: Promise<{
@@ -20,13 +22,19 @@ interface ProjectChatPageProps {
 export default function ProjectChatPage({ params }: ProjectChatPageProps) {
   const { projectId, chatId } = use(params);
 
-  const [currentChatData, setCurrentChatData] =
-    useState<ChatWithMessages | null>(null);
-
+  const [currentChatData, setCurrentChatData] = useState<ChatWithMessages | null>(null);
   const [isLoadingChatData, setIsLoadingChatData] = useState(true);
-
   const [sendMessageError, setSendMessageError] = useState<string | null>(null);
   const [isMessageSending, setIsMessageSending] = useState(false);
+
+  // Streaming state
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState("");
+  const [agentStatus, setAgentStatus] = useState("");
+
+  // Refs
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const firstTokenRef = useRef(true);
 
   const [feedbackModal, setFeedbackModal] = useState<{
     messageId: string;
@@ -35,40 +43,176 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
 
   const { getToken, userId } = useAuth();
 
-  // Send message function
+  // Send message function with streaming
   const handleSendMessage = async (content: string) => {
-    try {
-      setSendMessageError(null);
-      setIsMessageSending(true);
+    if (!currentChatData || !userId) {
+      setSendMessageError("Chat or user not found");
+      return;
+    }
 
-      if (!currentChatData || !userId) {
-        setSendMessageError("Chat or user not found");
+    // Reset states
+    setSendMessageError(null);
+    setIsMessageSending(true);
+    setIsStreaming(false);
+    setStreamingMessage("");
+    setAgentStatus("");
+    firstTokenRef.current = true;
+
+    // Create optimistic user message
+    const optimisticUserMessage: Message = {
+      id: `temp-${Date.now()}`,
+      chat_id: currentChatData.id,
+      content: content,
+      role: "user",
+      clerk_id: userId,
+      created_at: new Date().toISOString(),
+      citations: [],
+    };
+
+    // Add user message to UI immediately
+    setCurrentChatData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...prev.messages, optimisticUserMessage],
+      };
+    });
+
+    try {
+      const token = await getToken();
+
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+
+      // Build the streaming URL
+      const streamUrl = new URL(
+        `${API_BASE_URL}/api/projects/${projectId}/chats/${currentChatData.id}/messages/stream`
+      );
+      streamUrl.searchParams.set("token", token || "");
+      streamUrl.searchParams.set("clerk_id", userId);
+
+      const response = await fetch(streamUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+        signal: abortControllerRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error("No response body");
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Parse SSE events from buffer
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        let eventType = "";
+        let eventData = "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith("data: ")) {
+            eventData = line.slice(6);
+
+            if (eventType && eventData) {
+              try {
+                const data = JSON.parse(eventData);
+
+                switch (eventType) {
+                  case "status":
+                    setAgentStatus(data.status);
+                    break;
+
+                  case "token":
+                    if (firstTokenRef.current) {
+                      setIsMessageSending(false);
+                      setIsStreaming(true);
+                      firstTokenRef.current = false;
+                    }
+                    setStreamingMessage((prev) => prev + data.content);
+                    setAgentStatus("");
+                    break;
+
+                  case "done":
+                    setCurrentChatData((prev) => {
+                      if (!prev) return prev;
+                      return {
+                        ...prev,
+                        messages: [
+                          ...prev.messages.filter(
+                            (msg) => msg.id !== optimisticUserMessage.id
+                          ),
+                          data.userMessage,
+                          data.aiMessage,
+                        ],
+                      };
+                    });
+                    setIsStreaming(false);
+                    setStreamingMessage("");
+                    setAgentStatus("");
+                    toast.success("Message sent");
+                    break;
+
+                  case "error":
+                    throw new Error(data.message || "Stream error");
+                }
+              } catch (parseError) {
+                if (parseError instanceof SyntaxError) {
+                  console.warn("Failed to parse SSE data:", eventData);
+                } else {
+                  throw parseError;
+                }
+              }
+            }
+
+            // Reset for next event
+            eventType = "";
+            eventData = "";
+          }
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
         return;
       }
 
-      // Send POST request to create message
-      const token = await getToken();
-      const response = await apiClient.post(
-        `/api/projects/${projectId}/chats/${currentChatData.id}/messages`,
-        { content },
-        token
-      );
+      const errorMessage = err instanceof Error ? err.message : "Failed to send message";
+      setSendMessageError(errorMessage);
+      toast.error(errorMessage);
 
-      // Expecting response to contain both user message and AI response
-      const { userMessage, aiMessage } = response.data;
-
-      // Update chat with both messages
-      setCurrentChatData((prev) => ({
-        ...prev!,
-        messages: [...prev!.messages, userMessage, aiMessage],
-      }));
-
-      toast.success("Message sent");
-    } catch (err) {
-      setSendMessageError("Failed to send message");
-      toast.error("Failed to send message");
+      // Remove optimistic message on error
+      setCurrentChatData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: prev.messages.filter(
+            (msg) => msg.id !== optimisticUserMessage.id
+          ),
+        };
+      });
     } finally {
       setIsMessageSending(false);
+      setIsStreaming(false);
+      setStreamingMessage("");
+      setAgentStatus("");
+      abortControllerRef.current = null;
     }
   };
 
@@ -85,7 +229,6 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
 
     try {
       const token = await getToken();
-
       await apiClient.post(
         "/api/feedback",
         {
@@ -96,7 +239,6 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
         },
         token
       );
-
       toast.success("Thanks for your feedback!");
     } catch (error) {
       toast.error("Failed to submit feedback. Please try again.");
@@ -108,15 +250,11 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
   useEffect(() => {
     const loadChat = async () => {
       if (!userId) return;
-
       setIsLoadingChatData(true);
-
       try {
         const token = await getToken();
         const result = await apiClient.get(`/api/chats/${chatId}`, token);
-        const chatData = result.data;
-
-        setCurrentChatData(chatData);
+        setCurrentChatData(result.data);
         toast.success("Chat loaded");
       } catch (err) {
         toast.error("Failed to load chat. Please try again.");
@@ -124,9 +262,17 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
         setIsLoadingChatData(false);
       }
     };
-
     loadChat();
-  }, [userId, chatId, projectId]);
+  }, [userId, chatId, getToken]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   if (isLoadingChatData) {
     return <LoadingSpinner message="Loading chat..." />;
@@ -146,6 +292,9 @@ export default function ProjectChatPage({ params }: ProjectChatPageProps) {
         isLoading={isMessageSending}
         error={sendMessageError}
         onDismissError={() => setSendMessageError(null)}
+        isStreaming={isStreaming}
+        streamingMessage={streamingMessage}
+        agentStatus={agentStatus}
       />
       <MessageFeedbackModal
         isOpen={!!feedbackModal}
