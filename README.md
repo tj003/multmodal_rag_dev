@@ -146,24 +146,61 @@ uvicorn app.main:app --reload
 ## 📁 Project Structure
 
 ```
-multmodal_rag_dev/
-├── app/
+server/
+├── src/
 │   ├── agents/
-│   │   ├── supervisor.py        # LangGraph Supervisor Agent
-│   │   ├── rag_agent.py         # RAG subagent
-│   │   └── web_search_agent.py  # Web search subagent
-│   ├── ingestion/
-│   │   ├── pipeline.py          # Async ingestion pipeline
-│   │   ├── chunking.py          # Unstructured.io + pdfplumber
-│   │   └── embeddings.py        # Dual embedding support
-│   ├── retrieval/
-│   │   ├── strategies.py        # 4 retrieval strategies
-│   │   └── reranker.py          # RRF re-ranking
-│   ├── evaluation/
-│   │   └── ragas_eval.py        # RAGAS evaluation pipeline
-│   └── main.py                  # FastAPI entrypoint
-├── frontend/                    # Next.js frontend
+│   │   ├── simple_agent/
+│   │   │   └── agent.py                  # Base agent implementation
+│   │   └── supervisor_agent/
+│   │       └── agent.py                  # LangGraph Supervisor Agent (orchestrates RAG + Web Search)
+│   ├── rag/
+│   │   ├── ingestion/
+│   │   │   ├── index.py                  # Ingestion pipeline entry point
+│   │   │   └── utils.py                  # Unstructured.io + pdfplumber chunking
+│   │   └── retrieval/
+│   │       ├── index.py                  # Retrieval strategy selector
+│   │       └── utils.py                  # RRF re-ranking + hybrid search utils
+│   ├── routers/
+│   │   ├── chats.py                      # Chat endpoints
+│   │   ├── files.py                      # File upload + ingestion trigger
+│   │   ├── projects.py                   # Project management
+│   │   └── users.py                      # User endpoints
+│   ├── services/
+│   │   ├── awsS3.py                      # S3 image storage
+│   │   ├── celery.py                     # Async task queue
+│   │   ├── clerkAuth.py                  # Auth via Clerk
+│   │   ├── llm.py                        # LLM inference (Groq LLaMA 4 Scout)
+│   │   ├── supabase.py                   # PostgreSQL + pgvector client
+│   │   └── webScrapper.py                # ScrapingBee web scraping
+│   ├── config/
+│   │   ├── index.py                      # Environment config
+│   │   └── logging.py                    # structlog setup
+│   ├── middleware/
+│   │   └── logging_middleware.py         # Request/response logging
+│   ├── models/
+│   │   └── index.py                      # Pydantic models
+│   └── server.py                         # FastAPI app entrypoint
+├── evaluation/
+│   ├── datasets/
+│   │   └── ragas_evaluation_dataset.json # Evaluation dataset
+│   ├── scripts/
+│   │   ├── collect_data.py               # Data collection for eval
+│   │   └── ragas_evaluation_script.py    # RAGAS metrics runner
+│   └── ragas_experimentation.ipynb       # Evaluation experiments
+├── supabase/
+│   ├── migrations/
+│   │   ├── 20260322183027_initial_schema.sql      # DB schema + pgvector setup
+│   │   └── 20260429065908_chunk_search_functions.sql  # Hybrid search SQL functions
+│   └── config.toml
+├── notebooks/
+│   └── simple_agent.ipynb                # Agent experimentation
+├── logs/
+│   ├── application.log
+│   └── worker.log
 ├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── requirements.txt
 └── README.md
 ```
 
